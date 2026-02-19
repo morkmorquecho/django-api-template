@@ -16,6 +16,9 @@ dj-rest-auth = "==6.0.0"
 rich = "*"
 itsdangerous = "*"
 django-redis = "*"
+django-allauth = "*"
+requests = "*"
+cryptography = "*"
 
 [dev-packages]
 

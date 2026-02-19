@@ -53,9 +53,6 @@ INSTALLED_APPS = [
     #App del proyecto
     'users',
     'blog',
-    'orders',
-    'reviews',
-    'pieces',
     'core',
     
 ]
@@ -63,34 +60,38 @@ INSTALLED_APPS = [
 
 #================================================= CONFIG DATABSE =================================================
 #Autenticacion por Windows (comun en sql server)
-DATABASES = {
-    'default': {
-        'ENGINE': config('ENGINE_DB'),
-        'NAME': config('NAME_DB'),      
-        'HOST': config('HOST_DB'),
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-            'trusted_connection': 'yes',
-        },
+if config('DB_WINDOWS_AUTH', default=False, cast=bool):
+    DATABASES = {
+        'default': {
+            'ENGINE': config('DB_ENGINE'),
+            'NAME': config('DB_NAME'),      
+            'HOST': config('DB_HOST'),
+            'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',
+                'trusted_connection': 'yes',
+            },
+        }
     }
-}
 
-#Autenticacion usual
-# DATABASES = {
-#     'default': {
-#         'ENGINE': config('DB_ENGINE'),
-#         'NAME': config('DB_NAME'),
-#         'USER': config('DB_USER'),
-#         'PASSWORD': config('DB_PASSWORD'),
-#         'HOST': config('DB_HOST'),
-#         'PORT': config('DB_PORT', cast=int),
-#     }
-# }
+else:
+    # Autenticacion usual
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT'),
+        }
+    }
+    
 if 'test' in sys.argv:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
     }
+
 
 
 #================================================= PASSWORD VALIDATORS =================================================
