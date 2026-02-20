@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'corsheaders',
     "drf_spectacular",
-    
+    "storages",
+    'django_filters',
+
     # REST Framework
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
@@ -225,6 +227,10 @@ else:
 
 
 REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
+
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -283,8 +289,15 @@ CORS_ALLOW_HEADERS = [
 
 #========================================== CARPETAS RELEVANTES ==========================================
 BASE_DIR = Path(__file__).resolve().parent.parent
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# USANDO LOCAL
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# USANDO R2
+MEDIA_URL = f"https://{config('R2_PUBLIC_URL').replace('https://', '')}/"
+
+
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -474,6 +487,34 @@ TIME_ZONE = 'America/Mexico_City'
 USE_I18N = True
 USE_TZ = True
 
+##================================================  CLOUDFLARE R2 ================================================
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL = f"https://{config('CLOUDFLARE_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+AWS_S3_REGION_NAME = 'auto'
+
+# URL base desde donde se servirán los archivos públicamente
+AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL').replace('https://', '')
+
+# No firmar las URLs (el bucket es público)
+AWS_QUERYSTRING_AUTH = False
+
+# Opcional pero recomendado: caché para los archivos
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',  # 1 día
+}
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 #================================================ EXTRAS ======================================================
 SECRET_KEY = config('SECRET_KEY')

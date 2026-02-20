@@ -10,7 +10,7 @@ phone_regex = RegexValidator(
 
 class Address(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE) 
-    recipient_name = models.CharField(max_length=200)
+    recipient_name = models.CharField(max_length=200)    
     country = models.CharField(max_length=50, choices=[
         ('mexico', 'Mexico'),
         ('usa', 'Estados Unidos'),
