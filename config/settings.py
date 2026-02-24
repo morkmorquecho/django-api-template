@@ -297,7 +297,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # USANDO R2
 MEDIA_URL = f"https://{config('R2_PUBLIC_URL').replace('https://', '')}/"
 
-
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -487,7 +486,7 @@ TIME_ZONE = 'America/Mexico_City'
 USE_I18N = True
 USE_TZ = True
 
-##================================================  CLOUDFLARE R2 ================================================
+##================================================  STORAGES ================================================
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
@@ -513,8 +512,6 @@ AWS_QUERYSTRING_AUTH = False
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',  # 1 día
 }
-import logging
-logging.basicConfig(level=logging.DEBUG)
 
 #================================================ EXTRAS ======================================================
 SECRET_KEY = config('SECRET_KEY')
