@@ -3,7 +3,9 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes,authentication_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
 from auth.docs.schemas import REGISTRATION, RESEND_TOKEN, VERIFY_EMAIL, VERIFY_USER
 from auth.serializers import ResendTokenSerializer, UserCreateSerializer, VerifyEmailSerializer
 from core.mixins import SentryErrorHandlerMixin, ViewSetSentryMixin
