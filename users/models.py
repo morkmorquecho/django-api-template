@@ -2,6 +2,7 @@ from django.db import models
 from core.models import BaseModel 
 from django.contrib.auth.models import AbstractUser
 from users.utils import phone_regex
+import uuid
 
 class User(AbstractUser):
     email = models.EmailField(unique=True) 
