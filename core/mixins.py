@@ -470,42 +470,15 @@ class SoftDeleteAdminMixin:
         self.message_user(request, f"{queryset.count()} registro(s) desactivados.")
     action_deactivate.short_description = "Desactivar registros seleccionados"
 
-
-class ImagenPKMixin:
-    """
-    Mixin para modelos que tienen ImageFields y necesitan
-    que el archivo se nombre usando el PK del objeto.
+class OwnerCheckMixin:
+    """Mixin que agrega método para verificar ownership"""
     
-    Uso:
-        class pieces(ImagenPKMixin, models.Model):
-            imagen = models.ImageField(...)
+    def is_own_profile(self):
+        """Verifica si está viendo su propio perfil"""
+        if not self.request.user.is_authenticated:
+            return False
         
-        # Si tienes varios ImageFields:
-        class pieces(ImagenPKMixin, models.Model):
-            imagen_principal = models.ImageField(...)
-            imagen_secundaria = models.ImageField(...)
-    """
-
-    def _get_image_fields(self):
-        """Detecta automáticamente todos los ImageFields del modelo."""
-        from django.db.models import ImageField
-        return [
-            f.attname for f in self._meta.get_fields()
-            if isinstance(f, ImageField)
-        ]
-
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            imagenes_temporales = {}
-            for field_name in self._get_image_fields():
-                imagenes_temporales[field_name] = getattr(self, field_name)
-                setattr(self, field_name, None)
-
-            with transaction.atomic():
-                super().save(*args, **kwargs)
-                for field_name, valor in imagenes_temporales.items():
-                    setattr(self, field_name, valor)
-                kwargs.pop('force_insert', None)
-                super().save(*args, **kwargs)
-        else:
-            super().save(*args, **kwargs)
+        try:
+            return int(self.kwargs.get('pk')) == self.request.user.id
+        except (ValueError, TypeError, AttributeError):
+            return False
