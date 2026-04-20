@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',  
     
     #App del proyecto
-    'users',
+    'users.apps.UsersConfig',
     'blog',
     'core',
     
@@ -95,7 +95,7 @@ if 'test' in sys.argv:
     }
 
 
-
+AUTH_USER_MODEL = 'users.User'
 #================================================= PASSWORD VALIDATORS =================================================
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -111,7 +111,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 #================================================ JWT ==========================================================
 SIMPLE_JWT = {
@@ -136,9 +135,10 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
 
-     'TOKEN_OBTAIN_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenObtainPairSerializer',
+    'TOKEN_OBTAIN_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenObtainPairSerializer',
     'TOKEN_REFRESH_SERIALIZER': 'rest_framework_simplejwt.serializers.TokenRefreshSerializer',
 }
+
 
 
 #================================================ REST AUTH ==========================================================
@@ -153,18 +153,13 @@ REST_AUTH = {
 
 
 # =============================================== ALL AUTH  ========================================
-ACCOUNT_LOGIN_METHODS = ["email"]
+ACCOUNT_LOGIN_METHODS = {'email'}
 
-ACCOUNT_SIGNUP_FIELDS = ['username*', 'email*', 'password1*', 'password2*']
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'confirm_password*']
 
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_PREVENT_ENUMERATION = True
-
-ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/login/'
-ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-
 SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_ADAPTER = 'config.adapters.CustomSocialAccountAdapter'
 
 
 #=============================================== SOCIALACCOUNT_PROVIDERS DE ALLAUTH ===============================================
@@ -178,13 +173,32 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
         },
         'APP': {
-            'client_id': config('ID_GOOGLE_CLIENT'),
+            'client_id': config('ID_GOOGLE_CLIENT_WEB'),
             'secret': config('SECRET_GOOGLE_CLIENT'),
             'key': ''
         }
     },
+    
+    'facebook': {
+        'SCOPE': [
+            'email',
+            'public_profile'
+        ],
+        'AUTH_PARAMS': {
+            'auth_type': 'reauthenticate'
+        },
+        'APP': {
+            'client_id': config('FACEBOOK_APP_ID'),
+            'secret': config('FACEBOOK_APP_SECRET'),
+            'key': ''
+        }
+    }
 }
-
+GOOGLE_CLIENT_IDS = [
+    config('ID_GOOGLE_CLIENT_WEB'),
+]
+GOOGLE_OAUTH2_CLIENT_ID = config('ID_GOOGLE_CLIENT_WEB')
+GOOGLE_OAUTH2_ALLOWED_CLIENT_IDS = GOOGLE_CLIENT_IDS
 
 #================================================ AUTH BACKEND =====================================================
 AUTHENTICATION_BACKENDS = [
@@ -208,6 +222,8 @@ if config('ACTIVE_RATES', default=False, cast=bool):
             'sensitive': '5/hour',
             'heavy': '20/hour',
             'burst': '30/min',
+            'register_valid':'3/hour',
+
     }
 else:
     DEFAULT_THROTTLE_CLASSES = (
@@ -223,14 +239,11 @@ else:
             'sensitive': '995/hour',
             'heavy': '9920/hour',
             'burst': '9930/min',
+            'register_valid':'9993/hour',
     }
 
 
 REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend'
-    ],
-
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -256,7 +269,10 @@ REST_FRAMEWORK = {
 
 
 #================================================ EMAIL CONFIG ==========================================================
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+if 'test' in sys.argv:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
@@ -290,23 +306,61 @@ CORS_ALLOW_HEADERS = [
 #========================================== CARPETAS RELEVANTES ==========================================
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# USANDO LOCAL
-# MEDIA_URL = '/media/'
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# USANDO R2
-MEDIA_URL = f"https://{config('R2_PUBLIC_URL').replace('https://', '')}/"
-
-STATIC_URL = 'static/'
+# ─── ESTÁTICOS (siempre igual) ────────────────────────────────────
+STATIC_URL  = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
 
+# ========================================== STORAGE ==========================================
+USE_R2 = config('USE_R2', default=False, cast=bool)
+
+if USE_R2:
+    # ==== Cloudflare R2 ====
+    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+    AWS_S3_ENDPOINT_URL = f"https://{config('CLOUDFLARE_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+    AWS_S3_REGION_NAME = 'auto'
+    AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL').replace('https://', '')
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
+else:
+    # ==== Local ====
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
+
+
+
 #================================================= MIDDLEWARE ====================================================
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -314,7 +368,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 
@@ -336,7 +390,6 @@ TEMPLATES = [
         },
     },
 ]
-
 
 # ================================================ SECURITY (Producción) ================================================
 if not DEBUG:
@@ -413,7 +466,7 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
-        'auth': {  
+        'authentication': {  
             'handlers': ['console', 'file', 'error_file'],
             'level': 'INFO',
             'propagate': True,
@@ -425,7 +478,6 @@ LOGGING = {
         },
     },
 }
-
 
 #================================================ CACHE ======================================================
 if config('CACHES_REDIS', default=False, cast=bool) == True:
@@ -485,33 +537,6 @@ LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'America/Mexico_City'
 USE_I18N = True
 USE_TZ = True
-
-##================================================  STORAGES ================================================
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
-
-AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
-AWS_S3_ENDPOINT_URL = f"https://{config('CLOUDFLARE_ACCOUNT_ID')}.r2.cloudflarestorage.com"
-AWS_S3_REGION_NAME = 'auto'
-
-# URL base desde donde se servirán los archivos públicamente
-AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL').replace('https://', '')
-
-# No firmar las URLs (el bucket es público)
-AWS_QUERYSTRING_AUTH = False
-
-# Opcional pero recomendado: caché para los archivos
-AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',  # 1 día
-}
 
 #================================================ EXTRAS ======================================================
 SECRET_KEY = config('SECRET_KEY')

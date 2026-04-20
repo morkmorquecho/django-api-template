@@ -1,6 +1,8 @@
 # renderers.py
 from rest_framework.renderers import JSONRenderer
-from django.conf import settings
+from decouple import config
+
+PROJECT_NAME = config('PROJECT_NAME')
 
 class StandardJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
@@ -20,7 +22,7 @@ class StandardJSONRenderer(JSONRenderer):
                 'success': False,
                 'errors': {
                     "context": data,
-                    "code_error": f"{settings.BASE_DIR.name}.{module_name}.{view_name}",
+                    "code_error": PROJECT_NAME + module_name + "." + view_name,
                 }, 
                 "data": "",
                 'message': message
