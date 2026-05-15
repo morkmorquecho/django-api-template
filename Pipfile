@@ -24,6 +24,7 @@ boto3 = "*"
 pillow = "*"
 django-filter = "*"
 google-auth = "*"
+geoip2 = "*"
 
 [dev-packages]
 
