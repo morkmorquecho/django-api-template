@@ -23,6 +23,8 @@ from drf_spectacular.views import (
     SpectacularRedocView
 )
 from users.urls import user_path
+from django.conf import settings
+from django.conf.urls.static import static
 
 def trigger_error(request):
     division_by_zero = 1 / 0
@@ -41,3 +43,6 @@ urlpatterns = [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path("accounts/", include("allauth.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
