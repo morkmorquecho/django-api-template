@@ -6,36 +6,10 @@ from django.contrib import admin
 from django.contrib import admin
 
 from core.mixins import SoftDeleteAdminMixin
-from .models import Address
 from django.contrib.auth import get_user_model
 User = get_user_model()
 from django.contrib.auth.admin import UserAdmin
 
-@admin.register(Address)
-class AddressAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
-    list_display = (
-        "id",
-        'is_active',
-        "user",
-        "recipient_name",
-        "country",
-        "state",
-        "city",
-        "postal_code",
-        "is_default",
-        'created_at',
-        'updated_at',
-        'deleted_at',
-    )
-    list_filter = ("country", "state", "city", "is_default")
-    search_fields = (
-        "user__username",
-        "recipient_name",
-        "city",
-        "postal_code",
-        "street",
-    )
-    ordering = ("-is_default", "city")
 
 #======================================================= USER =============================================================
 @admin.action(description="Desactivar usuarios seleccionados")
