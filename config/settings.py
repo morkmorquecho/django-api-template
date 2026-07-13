@@ -17,6 +17,7 @@ from decouple import config
 from pathlib import Path
 
 import sentry_sdk
+DOMAIN = config('DOMAIN')
 
 import warnings
 #IGNORAR WARNINGS INNUTILES
@@ -52,10 +53,6 @@ INSTALLED_APPS = [
     
     #App del proyecto
     'users',
-    'blog',
-    'orders',
-    'reviews',
-    'pieces',
     'core',
     
 ]
@@ -63,35 +60,52 @@ INSTALLED_APPS = [
 
 #================================================= CONFIG DATABSE =================================================
 #Autenticacion por Windows (comun en sql server)
-DATABASES = {
-    'default': {
-        'ENGINE': config('ENGINE_DB'),
-        'NAME': config('NAME_DB'),      
-        'HOST': config('HOST_DB'),
-        'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-            'trusted_connection': 'yes',
-        },
+if config('DB_WINDOWS_AUTH', default=False, cast=bool):
+    DATABASES = {
+        'default': {
+            'ENGINE': config('DB_ENGINE'),
+            'NAME': config('DB_NAME'),      
+            'HOST': config('DB_HOST'),
+            'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',
+                'trusted_connection': 'yes',
+            },
+        }
     }
-}
 
-#Autenticacion usual
-# DATABASES = {
-#     'default': {
-#         'ENGINE': config('DB_ENGINE'),
-#         'NAME': config('DB_NAME'),
-#         'USER': config('DB_USER'),
-#         'PASSWORD': config('DB_PASSWORD'),
-#         'HOST': config('DB_HOST'),
-#         'PORT': config('DB_PORT', cast=int),
-#     }
-# }
+else:
+    # Autenticacion usual
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT'),
+        }
+    }
+    
 if 'test' in sys.argv:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
     }
 
+if 'test' in sys.argv:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = 'smtp.resend.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'resend'
+EMAIL_HOST_PASSWORD = config('RESEND_API_KEY')
+DEFAULT_FROM_EMAIL = f'no-reply@{DOMAIN}'
+EMAIL_TIMEOUT = 10
+
+AUTH_USER_MODEL = 'users.User'
 
 #================================================= PASSWORD VALIDATORS =================================================
 AUTH_PASSWORD_VALIDATORS = [
@@ -201,10 +215,11 @@ if config('ACTIVE_RATES', default=False, cast=bool):
             'anon': '35/hour',
             'user': '500/hour',
             'login': '5/hour',
-            'register': '3/hour',
+            'register': '30/hour',
             'sensitive': '5/hour',
             'heavy': '20/hour',
-            'burst': '30/min',
+            'burst': '20/min',
+            'register_valid':'3/hour'
     }
 else:
     DEFAULT_THROTTLE_CLASSES = (
@@ -220,7 +235,9 @@ else:
             'sensitive': '995/hour',
             'heavy': '9920/hour',
             'burst': '9930/min',
+            'register_valid':'9993/hour'
     }
+
 
 
 REST_FRAMEWORK = {
@@ -282,19 +299,48 @@ CORS_ALLOW_HEADERS = [
 
 #========================================== CARPETAS RELEVANTES ==========================================
 BASE_DIR = Path(__file__).resolve().parent.parent
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-STATIC_URL = 'static/'
+
+# ─── ESTÁTICOS (siempre igual) ────────────────────────────────────
+STATIC_URL  = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
 
+USE_R2 = config('USE_R2', default=False, cast=bool)
+
+
+#========================================== STORAGE ==========================================
+
+if USE_R2:
+    AWS_ACCESS_KEY_ID = config('R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config('R2_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = config('R2_BUCKET_NAME')
+    AWS_S3_ENDPOINT_URL = f"https://{config('CLOUDFLARE_ACCOUNT_ID')}.r2.cloudflarestorage.com"
+    AWS_S3_REGION_NAME = 'auto'
+    AWS_S3_CUSTOM_DOMAIN = config('R2_PUBLIC_URL').replace('https://', '')
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+
+
 #================================================= MIDDLEWARE ====================================================
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',    
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -331,8 +377,12 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
+    SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
+    CSRF_COOKIE_SAMESITE = config("CSRF_COOKIE_SAMESITE", default="Lax")
+    SESSION_COOKIE_SAMESITE = config("SESSION_COOKIE_SAMESITE", default="Lax")
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
 
 
 #================================================ LOGS ======================================================
@@ -415,24 +465,19 @@ LOGGING = {
 
 
 #================================================ CACHE ======================================================
-if config('CACHES_REDIS', default=False, cast=bool) == True:
-    CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': f'redis://{os.getenv("REDIS_HOST", "localhost")}:{os.getenv("REDIS_PORT", "6379")}/1',
-        'OPTIONS': {
-            'socket_connect_timeout': 5,
-            'socket_timeout': 5,
-        }
-    }
-}
+REDIS_URL = config('REDIS_URL')
+
+if config('CACHES_REDIS', default=False, cast=bool):
+    if config('DEBUG', default=False, cast=bool):
+        CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': f'redis://{os.getenv("REDIS_HOST", "localhost")}:{os.getenv("REDIS_PORT", "6379")}/1',
+            'OPTIONS': {'socket_connect_timeout': 5, 'socket_timeout': 5}}}
+    else:
+        CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {'socket_connect_timeout': 5, 'socket_timeout': 5}}}
 else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'rate-limit-cache',
-        }
-    }
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache', 'LOCATION': 'rate-limit-cache'}}
 
 
 
@@ -464,6 +509,7 @@ if not config('DEBUG', default=True, cast=bool):
     sentry_sdk.init(
         dsn=config('SDK_SENTRY', default=None),
         send_default_pii=True,
+        traces_sample_rate=1.0
     )
 
 
@@ -480,7 +526,16 @@ DEBUG = config('DEBUG', cast=bool)
 WSGI_APPLICATION = 'config.wsgi.application'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
 
 ROOT_URLCONF = 'config.urls'
 
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://localhost:3000,http://localhost:5173",
+    cast=lambda v: [s.strip() for s in v.split(",") if s]
+)

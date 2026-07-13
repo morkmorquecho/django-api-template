@@ -177,7 +177,6 @@ class PasswordResetConfirmViewTests(TestCase):
     
 # auth/tests.py
 from django.test import TestCase
-from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
 from unittest.mock import patch, MagicMock

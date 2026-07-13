@@ -4,29 +4,31 @@ Vistas para autenticación OAuth (Google, Facebook, etc.).
 from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
+
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from auth.base import BaseOAuthView
 from auth.docs.schemas import FACEBOOK, GOOGLE
-from auth.services import AuthenticationService
 from auth.adapters import CustomFacebookOAuth2Adapter
-from django.contrib.auth import get_user_model
+
+from auth.serializers import GoogleIDTokenSerializer
+from auth.services import AuthenticationService
+from auth.adapters import GoogleIDTokenAdapter
 from auth.docs.request import GOOGLE_LOGIN_REQUEST, FACEBOOK_LOGIN_REQUEST
-from auth.docs.response import LOGIN_RESPONSE
 from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 
+from core.docs.schema_utils import auto_schema
 from core.responses.messages import UserMessages
 
+from django.contrib.auth import get_user_model
 User = get_user_model()
 
-_MODULE_PATH = 'auth.views.oauth_views'
-
-
-@GOOGLE
+@auto_schema(**GOOGLE)
 class GoogleLoginView(BaseOAuthView, SocialLoginView):
-    adapter_class = GoogleOAuth2Adapter
+    adapter_class = GoogleIDTokenAdapter    
     client_class = OAuth2Client
+    serializer_class = GoogleIDTokenSerializer 
     callback_url = 'http://localhost:8000/accounts/google/login/callback/'
     sentry_operation_name = "google_authentication"
     
@@ -39,7 +41,7 @@ class GoogleLoginView(BaseOAuthView, SocialLoginView):
                 'component': 'GoogleLoginView',
                 'provider': 'google'
             },
-            success_message={'detail': UserMessages.LOGIN},
+            success_message={'detail': UserMessages.LOGIN_SUCCESS},
             success_status=status.HTTP_200_OK
         )
     
