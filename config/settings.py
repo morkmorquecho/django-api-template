@@ -258,7 +258,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': config('PAGINATION_LIMIT'),
 
     'DEFAULT_RENDERER_CLASSES': [
-        'config.renderers.StandardJSONRenderer',
+        'core.renderers.StandardJSONRenderer',
     ],
 
     'EXCEPTION_HANDLER': 'core.utils.exceptions.custom_exception_handler',
