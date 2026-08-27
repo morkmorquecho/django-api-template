@@ -3,7 +3,6 @@
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter, OpenApiExample, extend_schema_view
 from auth.docs.request import GOOGLE_LOGIN_REQUEST, RESEND_CONFIRMATION_EMAIL_REQUEST
 from core.responses.messages import AuthMessages, UserMessages
-from core.responses.schemas import UserResponses
 _MODULE_PATH = 'auth.views' 
 
 EMAIL_UPDATE = extend_schema(
