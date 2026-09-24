@@ -482,3 +482,14 @@ class OwnerCheckMixin:
             return int(self.kwargs.get('pk')) == self.request.user.id
         except (ValueError, TypeError, AttributeError):
             return False
+        
+        
+import logging
+
+class LoggerMixin:
+    """Lazy logger - se crea automáticamente con el módulo de la vista."""
+    @property
+    def logger(self):
+        if not hasattr(self, '_logger'):
+            self._logger = logging.getLogger(self.__class__.__module__)
+        return self._logger
