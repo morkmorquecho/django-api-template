@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 django = "*"
-python-decouple = "*"
 mssql-django = "*"
 djangorestframework-simplejwt = "*"
 djangorestframework = "*"
@@ -25,6 +24,8 @@ resend = "*"
 google-auth = "*"
 django-filter = "*"
 psycopg = {extras = ["binary"], version = "*"}
+python-decouple = "*"
+mkdocs-material = "*"
 
 [dev-packages]
 
