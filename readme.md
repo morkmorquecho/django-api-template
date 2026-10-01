@@ -1,348 +1,181 @@
 # 🧱 Django API Template
 
-A production-minded **Django REST Framework starter** designed to bootstrap backend projects quickly with a solid architecture, authentication, security, observability and common API infrastructure already configured.
+A reusable **Django REST Framework backend foundation** built with a focus on clean architecture, security, observability, scalability and production-oriented infrastructure.
 
-The template is intentionally modular: project-specific applications can be added on top of a reusable `core` layer without having to rebuild the same backend infrastructure every time.
-
----
-
-## ✨ What's Included
-
-### 🔐 Authentication & Security
-
-- **JWT authentication** with access/refresh tokens using SimpleJWT.
-- **Refresh token rotation** and token blacklist.
-- **Email/password authentication** through `dj-rest-auth` and `django-allauth`.
-- **Mandatory email verification**.
-- **Google OAuth / social login**.
-- Protection against **email/account enumeration**.
-- Configurable **rate limiting / throttling** for anonymous users, authenticated users, login, registration and sensitive/heavy endpoints.
-- **CORS** configuration for separate frontend applications.
-- **CSRF trusted origins** configurable through environment variables.
-- Production security settings automatically enabled when `DEBUG=False`:
-  - HTTPS redirect.
-  - HSTS.
-  - Secure cookies.
-  - SameSite cookie configuration.
-  - Proxy HTTPS support.
-- Custom user model: `users.User`.
-
-### 🌐 API Infrastructure
-
-- Django REST Framework.
-- **Standardized JSON responses** through a custom renderer.
-- **Centralized exception handling**.
-- Automatic **pagination** with configurable page size.
-- Global authentication and permission defaults.
-- Custom throttling classes.
-- **OpenAPI 3 / Swagger documentation** with `drf-spectacular`.
-- Reusable API services, utilities, responses and mixins.
-
-### 🌎 IP & Geographic Context
-
-- **Country detection from the client's IP address**, providing geographic context that can be used by applications for regional business rules such as:
-  - Country-specific behavior.
-  - Regional content.
-  - Localization.
-  - Pricing or currency rules.
-  - Geographic restrictions.
-  - Analytics and segmentation.
-
-The template keeps this concern in the backend so individual applications do not need to implement IP handling independently.
-
-### 🗄️ Database
-
-The configuration supports different database environments:
-
-- **PostgreSQL** for the standard configuration.
-- **SQL Server** with Microsoft ODBC Driver 17.
-- Optional **Windows Authentication** for SQL Server.
-- **SQLite in-memory database** when running the test suite.
-
-Database credentials and connection settings are managed through environment variables.
-
-### 📦 File & Static Storage
-
-- Local filesystem storage for development.
-- Optional **Cloudflare R2 / S3-compatible storage** for media files.
-- Configurable public R2 domain.
-- Cache-Control headers for stored objects.
-- **WhiteNoise** for compressed and hashed static files.
-
-### 📧 Email
-
-Email infrastructure is already configured for:
-
-- Email verification.
-- Authentication-related emails.
-- SMTP delivery.
-- **Resend SMTP** support.
-- Gmail SMTP configuration.
-
-During tests, Django's console email backend can be used instead of sending real emails.
-
-### 📊 Observability & Logging
-
-- Rich console logging during development.
-- Rotating application log files.
-- Separate rotating error log.
-- Django request error logging.
-- Application-specific loggers for authentication and users.
-- **Sentry** integration for production error monitoring.
-- Custom Sentry reporting middleware.
-
-### ⚡ Performance & Caching
-
-- Optional **Redis** cache.
-- Local-memory cache fallback when Redis is disabled.
-- Redis configuration works with both local development and production URLs.
-- Redis can also be used by the throttling layer.
-
-### 🧑‍💻 Developer Experience
-
-- Pipenv-based dependency and command management.
-- Docker / Docker Compose support.
-- Environment-based configuration.
-- Ready-made reusable `core` infrastructure.
-- Example applications such as `users`, `auth` and `blog`.
-- Built-in migrations, services, middleware, responses and utilities structure.
+This project is intentionally more than a collection of Django apps: it centralizes the backend concerns that tend to be repeated across projects and provides a structured foundation for building real-world APIs.
 
 ---
 
-## 🛠️ Stack
+## Engineering Highlights
 
-| Technology | Purpose |
-|---|---|
-| **Python 3.13+** | Programming language |
-| **Django 5.2** | Backend framework |
-| **Django REST Framework** | REST API |
-| **SimpleJWT** | JWT authentication |
-| **dj-rest-auth** | Authentication endpoints |
-| **django-allauth** | Account management & Google OAuth |
-| **drf-spectacular** | OpenAPI / Swagger documentation |
-| **django-cors-headers** | CORS |
-| **python-decouple** | Environment configuration |
-| **PostgreSQL** | Primary relational database |
-| **SQL Server** | Alternative database backend |
-| **Redis** | Optional caching |
-| **Cloudflare R2** | Optional object storage |
-| **Sentry** | Error monitoring |
-| **Rich** | Developer-friendly logging |
-| **WhiteNoise** | Static file serving |
-| **Docker** | Containerization |
-| **Pipenv** | Dependency management |
+- Custom Django user model and authentication architecture.
+- JWT authentication with refresh-token rotation and blacklist support.
+- Email verification and Google OAuth.
+- Account-enumeration protection.
+- Configurable API throttling for authentication, sensitive and expensive endpoints.
+- Standardized API responses and centralized exception handling.
+- Automatic OpenAPI / Swagger documentation.
+- Country detection from client IP for geographic application logic.
+- PostgreSQL and SQL Server support, including SQL Server Windows Authentication.
+- Optional Redis caching.
+- Optional Cloudflare R2 object storage.
+- Production error monitoring with Sentry.
+- Structured and rotating application logs.
+- Dockerized development and production-oriented containerization.
+- Multi-stage Docker image.
+- Non-root application container.
+- Gunicorn production server.
+- Environment-driven configuration.
+- WhiteNoise static-file handling.
+- Automatic migrations and static collection at container startup.
+- Health checks for infrastructure dependencies.
+- Separation between project configuration, shared infrastructure and business applications.
 
 ---
 
-## 📁 Project Structure
+## Architecture
+
+The project follows a layered Django structure where **application-specific logic stays inside applications**, while reusable backend infrastructure lives in `core`.
+
+```text
+                         ┌─────────────────────┐
+                         │      Django API     │
+                         └──────────┬──────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+        Applications              Core                 Config
+      auth / users / blog     Shared infrastructure   Project settings
+              │                     │                 URLs / throttling
+              │          ┌──────────┼──────────┐
+              │          │          │          │
+              │      Services   Middleware  Responses
+              │          │          │          │
+              └──────────┴──────────┴──────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+          PostgreSQL              Redis             Object Storage
+          SQL Server             Cache              Local / R2
+```
+
+The intention is to avoid turning `views.py` into a dumping ground for business logic and to keep reusable infrastructure independent from individual applications.
+
+---
+
+## Project Structure
 
 ```text
 api-template-django/
 │
-├── .vscode/                  # VS Code project configuration
+├── .vscode/
 │
-├── auth/                     # Authentication-related application logic
+├── auth/
+│   └── ...                    # Authentication-related logic
 │
-├── blog/                     # Example content/blog application
+├── blog/
+│   └── ...                    # Example application
 │
-├── config/                   # Django project configuration
-│   ├── settings.py           # Main settings and infrastructure configuration
-│   ├── urls.py               # Root URL configuration
-│   ├── throttling.py         # Custom DRF throttling
-│   ├── renderers.py          # API rendering configuration
-│   ├── wsgi.py               # WSGI entry point
+├── config/
+│   ├── settings.py            # Django configuration
+│   ├── urls.py                # Root URL configuration
+│   ├── throttling.py          # Custom API throttling
+│   ├── wsgi.py                # WSGI entry point
 │   └── ...
 │
-├── core/                     # Shared backend infrastructure
-│   ├── docs/                 # Documentation-related resources
-│   ├── middleware/           # Custom middleware
-│   ├── migrations/           # Core migrations
-│   ├── responses/            # Reusable API response helpers
-│   ├── services/             # Shared business/service logic
-│   ├── utils/                # Shared utilities
-│   ├── error_codes.py        # Centralized API error codes
-│   ├── exceptions.py         # Custom exceptions
+├── core/
+│   ├── docs/                  # Documentation resources
+│   ├── middleware/            # Custom middleware
+│   ├── migrations/            # Core migrations
+│   ├── responses/             # Standard API responses
+│   ├── services/              # Shared service/business logic
+│   ├── utils/                 # Shared utilities
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── error_codes.py         # Centralized API error codes
+│   ├── exceptions.py          # Custom exceptions
 │   ├── middleware.py         # Shared middleware
-│   ├── mixins.py             # Reusable DRF/Django mixins
-│   ├── models.py             # Shared models
-│   ├── permission.py         # Reusable permissions
-│   ├── renderers.py          # Shared API renderers
-│   ├── views.py              # Shared/base views
-│   └── ...
+│   ├── mixins.py              # Reusable mixins
+│   ├── models.py              # Shared models
+│   ├── permission.py          # Reusable permissions
+│   ├── renderers.py           # API renderers
+│   ├── tests.py
+│   └── views.py
 │
-├── data/                     # Data, fixtures or project seed resources
-├── logs/                     # Application and error logs
-├── templates/                # Email and Django templates
-├── users/                    # Custom user model, profiles and user logic
+├── data/                      # Data / seed resources
+├── logs/                      # Application logs
+├── templates/                 # Email / Django templates
+├── users/                     # Custom user model and user domain
 │
-├── .env                      # Local environment variables (not committed)
-├── example.env.txt           # Environment variable reference
-├── docker-compose.yml        # Local/container orchestration
-├── dockerfile                # Application container image
-├── entrypoint.sh             # Container startup script
-├── manage.py                 # Django CLI
-├── Pipfile                   # Pipenv dependencies and scripts
-├── Pipfile.lock              # Locked dependency versions
-├── requirements.txt          # Python requirements
+├── .env
 ├── .gitignore
-└── README.md
-```
-
-### Architecture
-
-The project separates responsibilities into three main layers:
-
-```text
-                    ┌──────────────────────┐
-                    │       Django API     │
-                    └──────────┬───────────┘
-                               │
-             ┌─────────────────┼─────────────────┐
-             │                 │                 │
-        Applications          Core           Config
-       auth / users /        Shared          Settings,
-          blog              backend          URLs,
-                          infrastructure     throttling
-             │                 │
-             └──────────┬──────┘
-                        │
-              ┌─────────┼─────────┐
-              │         │         │
-           Database    Redis     Storage
-         PostgreSQL   optional   Local / R2
-         SQL Server
-```
-
-The idea is to keep **project-specific business logic inside applications** while common backend infrastructure remains reusable inside `core`.
-
----
-
-## 🚀 Quick Start
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/morkmorquecho/api-template-django.git
-cd api-template-django
-```
-
-### 2. Install dependencies
-
-```bash
-pipenv install
-pipenv shell
-```
-
-### 3. Configure environment variables
-
-Create your local `.env` from the provided example:
-
-```bash
-cp example.env.txt .env
-```
-
-Then configure the required values, including:
-
-- `SECRET_KEY`
-- `DEBUG`
-- `DOMAIN`
-- `ALLOWED_HOSTS`
-- Database settings
-- Email credentials
-- Google OAuth credentials
-- CORS origins
-- CSRF trusted origins
-- Pagination
-- Rate limiting
-- Optional Redis
-- Optional Cloudflare R2
-- Optional Sentry
-
-> **Never commit `.env` or production credentials to the repository.**
-
-### 4. Create and apply migrations
-
-```bash
-pipenv run mk
-pipenv run mi
-```
-
-### 5. Create a superuser
-
-```bash
-pipenv run su
-```
-
-### 6. Start the development server
-
-```bash
-pipenv run r
-```
-
-The API will be available at:
-
-```text
-http://localhost:8000
-```
-
-Swagger UI:
-
-```text
-http://localhost:8000/api/schema/swagger-ui/
+├── docker-compose.yml
+├── dockerfile
+├── entrypoint.sh
+├── example.env.txt
+├── manage.py
+├── Pipfile
+├── Pipfile.lock
+├── readme
+└── requirements.txt
 ```
 
 ---
 
-## 🐳 Docker
+# 🔐 Authentication & Security
 
-The repository includes:
+### JWT
+
+Authentication is based on **SimpleJWT** and includes:
+
+- Access tokens.
+- Refresh tokens.
+- Refresh-token rotation.
+- Blacklisting of rotated refresh tokens.
+- Bearer authentication.
+- Configurable token lifetimes.
+
+Current configuration:
 
 ```text
-dockerfile
-docker-compose.yml
-entrypoint.sh
+Access token:   60 minutes
+Refresh token:  7 days
+Algorithm:      HS256
+Header:         Authorization: Bearer <token>
 ```
 
-This allows the project to be run using a containerized environment instead of installing the complete stack directly on the host machine.
+### Account Security
 
-Typical workflow:
+The authentication layer includes:
 
-```bash
-docker compose up --build
+- Mandatory email verification.
+- Unique email addresses.
+- Login by email.
+- Google social authentication.
+- Protection against account/email enumeration.
+- Django password validators.
+- Custom user model.
+
+Authentication is built using:
+
+```text
+django-allauth
+        +
+dj-rest-auth
+        +
+SimpleJWT
 ```
-
-Environment variables should still be provided through the configured environment / `.env` workflow.
 
 ---
 
-## ⚡ Handy Commands
+# 🚦 API Throttling
 
-The project defines common commands through Pipenv:
+The API includes multiple throttling scopes instead of relying only on a single global request limit.
 
-| Command | Description |
-|---|---|
-| `pipenv run r` | Start the development server |
-| `pipenv run mk` | Create migrations |
-| `pipenv run mi` | Apply migrations |
-| `pipenv run su` | Create a superuser |
-| `pipenv run sh` | Open the Django shell |
-| `pipenv run test` | Run the test suite |
-| `pipenv run st <name>` | Create a new Django app |
-| `pipenv run clearsessions` | Clear expired sessions |
+Production-oriented limits include:
 
----
-
-## 🚦 Rate Limiting
-
-Rate limiting is controlled through:
-
-```env
-ACTIVE_RATES=True
-```
-
-When enabled, the API uses stricter production-oriented limits.
-
-| Scope | Production |
+| Scope | Limit |
 |---|---:|
 | Anonymous | 35/hour |
 | Authenticated | 500/hour |
@@ -353,224 +186,243 @@ When enabled, the API uses stricter production-oriented limits.
 | Burst | 20/min |
 | Registration validation | 3/hour |
 
-When rate limiting is disabled, development uses significantly higher limits to avoid interfering with local development.
+Rate limiting can be enabled or relaxed through environment configuration, allowing development and production environments to behave differently.
 
-The exact values are configured in `config/settings.py`.
+Custom throttling lives in:
 
----
-
-## 🔑 JWT Configuration
-
-The default JWT configuration includes:
-
-- Access token lifetime: **60 minutes**
-- Refresh token lifetime: **7 days**
-- Refresh token rotation.
-- Blacklisting of rotated refresh tokens.
-- `Bearer` authentication.
-- User ID based authentication.
-
-Example:
-
-```http
-Authorization: Bearer <access_token>
+```text
+config/throttling.py
 ```
 
-JWT configuration lives in `config/settings.py` and is driven by the project's `SECRET_KEY`.
+---
+
+# 🌎 IP Country Detection
+
+The backend supports **country detection from the client's IP address**.
+
+This provides geographic context that can be consumed by application-level business logic, for example:
+
+```text
+Client request
+      │
+      ▼
+Client IP
+      │
+      ▼
+Country detection
+      │
+      ├── Country
+      └── Geographic context
+             │
+             ▼
+      Application logic
+```
+
+Possible applications include:
+
+- Regional pricing.
+- Currency selection.
+- Country-specific content.
+- Geographic restrictions.
+- Localization.
+- Regional feature availability.
+- Analytics and segmentation.
+
+The feature is treated as geographic context rather than a reliable identity mechanism, since VPNs, proxies, mobile networks and reverse proxies can affect IP-based location.
 
 ---
 
-## 📚 API Documentation
+# 📡 API Design
 
-OpenAPI documentation is generated automatically using **drf-spectacular**.
+The project establishes common API infrastructure instead of implementing response and error behavior independently in every endpoint.
 
-### Swagger UI
+### Standardized responses
+
+A custom renderer provides a consistent JSON response format.
+
+```text
+core/renderers.py
+```
+
+### Centralized exceptions
+
+API exceptions are handled through a centralized exception handler:
+
+```text
+core/utils/exceptions.py
+```
+
+This keeps error formatting consistent across the API.
+
+### Reusable responses
+
+Common response behavior is organized under:
+
+```text
+core/responses/
+```
+
+### Reusable services
+
+Shared service-level logic is separated into:
+
+```text
+core/services/
+```
+
+This allows views to remain focused on HTTP concerns while reusable business operations live outside the view layer.
+
+### Permissions and mixins
+
+Reusable authorization and DRF behavior are centralized under:
+
+```text
+core/permission.py
+core/mixins.py
+```
+
+---
+
+# 📚 OpenAPI / Swagger
+
+The API is documented automatically using **drf-spectacular**.
+
+The schema is configured with:
+
+- OpenAPI generation.
+- Bearer authentication.
+- API tags.
+- Request/response schema splitting.
+- `/api/` schema path configuration.
+
+Swagger UI:
 
 ```text
 /api/schema/swagger-ui/
 ```
 
-### OpenAPI schema
+OpenAPI schema:
 
 ```text
 /api/schema/
 ```
 
-Authentication is documented using Bearer JWT authentication.
-
 ---
 
-## 🌎 Country Detection by IP
+# 🗄️ Database Layer
 
-The backend includes support for determining the **country associated with the client's IP address**.
-
-This can be useful when an application needs geographic context before executing business logic.
-
-For example:
-
-```text
-Request
-   │
-   ▼
-Client IP
-   │
-   ▼
-Country detection
-   │
-   ├── Mexico
-   ├── United States
-   ├── Canada
-   └── ...
-         │
-         ▼
-   Application business rules
-```
-
-Potential use cases include:
-
-- Regional pricing.
-- Currency selection.
-- Country-specific content.
-- Geographic access rules.
-- Localization.
-- Analytics.
-- Regional feature availability.
-
-The detection mechanism should be treated as **context rather than an absolute identity signal**, since proxies, VPNs, mobile networks and reverse proxies can affect the apparent client IP.
-
-When deploying behind a reverse proxy or load balancer, the application's proxy/IP configuration must be handled carefully to avoid trusting arbitrary client-supplied IP headers.
-
----
-
-## 🗄️ Database Configuration
+The project is configured to work with multiple relational database environments.
 
 ### PostgreSQL
 
-The default non-SQL Server configuration uses PostgreSQL:
+The standard containerized environment uses:
 
-```env
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
-DB_HOST=
-DB_PORT=
+```text
+PostgreSQL 16
 ```
 
 ### SQL Server
 
-SQL Server can be enabled through the environment configuration and supports Windows Authentication:
-
-```env
-DB_WINDOWS_AUTH=True
-```
-
-The SQL Server configuration uses:
+The configuration also supports SQL Server through:
 
 ```text
 ODBC Driver 17 for SQL Server
 ```
 
-### Testing
-
-When running tests, Django switches to an in-memory SQLite database:
+including optional:
 
 ```text
-sqlite3 :memory:
+Windows Authentication
 ```
 
-This keeps the test suite independent from the development database.
+### Testing
+
+The test environment automatically switches to:
+
+```text
+SQLite :memory:
+```
+
+This keeps tests isolated from development databases.
 
 ---
 
-## 🗃️ Cloudflare R2
+# ⚡ Redis
 
-Object storage can be enabled with:
+Redis is an optional infrastructure component.
 
-```env
-USE_R2=True
+The project supports:
+
+```text
+Redis
+   │
+   └── Django cache
 ```
 
-When enabled, the application uses Cloudflare R2 through its S3-compatible API.
+with a local-memory fallback when Redis is disabled.
 
-Relevant configuration includes:
+The Docker environment includes:
 
-```env
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
-R2_BUCKET_NAME=
-CLOUDFLARE_ACCOUNT_ID=
-R2_PUBLIC_URL=
+```text
+redis:7-alpine
 ```
 
-When R2 is disabled, uploaded media uses local filesystem storage.
-
-Static files continue to use WhiteNoise with compressed manifest storage.
+and performs a Redis health check before starting the API service.
 
 ---
 
-## ⚡ Redis
+# ☁️ Cloudflare R2
 
-Redis is optional.
+The storage layer can use **Cloudflare R2** through its S3-compatible API.
 
-Enable it with:
+Supported configuration includes:
 
-```env
-CACHES_REDIS=True
-```
+- Access credentials.
+- Bucket selection.
+- Cloudflare account ID.
+- Custom public domain.
+- Automatic media URL configuration.
+- Cache-Control headers.
 
-Development can use a local Redis instance while production can use a configured Redis URL:
+When R2 is disabled, media files use local filesystem storage.
 
-```env
-REDIS_URL=
-```
-
-When Redis is disabled, Django falls back to local-memory caching.
-
----
-
-## 📧 Email
-
-The project supports SMTP-based email delivery.
-
-Email is used by the authentication system for workflows such as:
-
-- Account verification.
-- Email confirmation.
-- Authentication-related notifications.
-
-For tests, Django uses:
-
-```python
-django.core.mail.backends.console.EmailBackend
-```
-
-so emails are displayed in the console instead of being sent.
+Static files are handled independently through **WhiteNoise**.
 
 ---
 
-## 📈 Sentry
+# 📊 Observability
 
-Sentry can be enabled for production error monitoring.
+## Sentry
 
-Configure:
+Production error monitoring is integrated with **Sentry**.
 
-```env
-SDK_SENTRY=
+Sentry is initialized only when the application is running outside debug mode.
+
+```text
+Application
+     │
+     ▼
+Exception
+     │
+     ▼
+Sentry reporting middleware
+     │
+     ▼
+Sentry
 ```
 
-Sentry is initialized when:
+## Logging
 
-```env
-DEBUG=False
-```
+The project includes:
 
-The project also includes custom Sentry reporting middleware.
+- Rich console logging.
+- Rotating application logs.
+- Dedicated error logs.
+- Django request error logging.
+- Authentication-specific logging.
+- User-domain logging.
 
----
-
-## 📝 Logging
-
-Logs are stored in:
+Log files:
 
 ```text
 logs/
@@ -578,149 +430,287 @@ logs/
 └── errors.log
 ```
 
-Production logging uses rotating files to prevent logs from growing indefinitely.
-
-Development also uses **Rich** for more readable console output and tracebacks.
-
----
-
-## 🔒 Production Checklist
-
-Before deploying:
-
-- [ ] Set `DEBUG=False`.
-- [ ] Generate a unique production `SECRET_KEY`.
-- [ ] Configure `ALLOWED_HOSTS`.
-- [ ] Configure `CSRF_TRUSTED_ORIGINS`.
-- [ ] Configure `CORS_ALLOWED_ORIGINS`.
-- [ ] Set secure cookie options according to the deployment.
-- [ ] Enable `ACTIVE_RATES=True`.
-- [ ] Configure production database credentials.
-- [ ] Configure SMTP / Resend credentials.
-- [ ] Configure `SDK_SENTRY`.
-- [ ] Configure Redis if required.
-- [ ] Configure Cloudflare R2 if required.
-- [ ] Run migrations.
-- [ ] Run `collectstatic`.
-- [ ] Serve Django behind a production WSGI server and reverse proxy.
-- [ ] Ensure proxy HTTPS headers are configured correctly.
-- [ ] Verify that client IP detection works correctly behind the reverse proxy.
-- [ ] Never expose `.env` or credentials in the repository.
-
----
-
-## 🧪 Testing
-
-Run the test suite with:
-
-```bash
-pipenv run test
-```
-
-The project automatically switches to an in-memory SQLite database during tests.
-
-For larger projects, new application tests should live alongside the application they belong to.
-
----
-
-## 🧩 Adding a New Application
-
-Create a new Django app using the existing Pipenv shortcut:
-
-```bash
-pipenv run st payments
-```
-
-Then keep application-specific logic inside the new app:
+Production log rotation is configured with:
 
 ```text
-payments/
-├── migrations/
-├── admin.py
-├── apps.py
-├── models.py
-├── permissions.py
-├── serializers.py
-├── services.py
-├── urls.py
-├── views.py
-└── tests.py
+15 MB per file
+10 backups
 ```
-
-Shared functionality that is useful across multiple applications should generally live in `core/` instead of being duplicated.
 
 ---
 
-## 📌 Environment Configuration
+# 🐳 Containerization
 
-The repository includes:
+Docker is not only used as a development convenience; the repository includes a production-oriented application image.
+
+## Multi-stage Docker build
+
+The Dockerfile uses two stages:
 
 ```text
-example.env.txt
+Builder
+   │
+   ├── System build dependencies
+   ├── Python dependencies
+   └── requirements.txt
+            │
+            ▼
+Production image
+   │
+   ├── Python runtime only
+   ├── Installed dependencies
+   ├── Application source
+   └── Non-root user
 ```
 
-Use it as the reference for the variables required by the project.
+This keeps build tooling out of the final runtime image.
 
-Configuration is loaded primarily through `python-decouple`, allowing settings to remain outside the source code.
+## Non-root container
 
-The application supports environment-driven configuration for:
+The application runs under a dedicated:
 
-- Django security.
-- Database connections.
-- Authentication.
-- Google OAuth.
-- Email.
-- CORS / CSRF.
-- Rate limiting.
-- Pagination.
-- Redis.
-- Cloudflare R2.
-- Sentry.
-- Swagger metadata.
+```text
+django
+```
+
+user rather than root.
+
+The container also creates and assigns ownership of required runtime directories such as:
+
+```text
+/app/staticfiles
+/app/logs
+```
+
+## Production server
+
+The production container starts Django through:
+
+```text
+Gunicorn
+```
+
+with:
+
+```text
+3 workers
+120 second timeout
+access logs → stdout
+error logs → stderr
+```
+
+The application binds to the platform-provided:
+
+```text
+$PORT
+```
+
+making the container suitable for platforms such as Railway.
 
 ---
 
-## 🎯 Why This Template?
+# 🧩 Container Startup
 
-The goal is not to create another generic Django starter.
-
-It is meant to provide the **backend foundation that repeatedly appears in real projects**:
+`entrypoint.sh` centralizes the production startup lifecycle:
 
 ```text
-Authentication
-     +
-Security
-     +
-API conventions
-     +
-Rate limiting
-     +
-Logging
-     +
-Monitoring
-     +
-Caching
-     +
-Storage
-     +
-Email
-     +
-IP / geographic context
-     +
-Documentation
-     ↓
-Reusable Django backend foundation
+Container starts
+      │
+      ▼
+Apply migrations
+      │
+      ▼
+Collect static files
+      │
+      ▼
+Start Gunicorn
 ```
 
-Instead of spending the first days of every project configuring the same infrastructure, the application can start directly with its business logic.
+This ensures the deployed application performs the required Django initialization steps before accepting requests.
+
+---
+
+# 🐳 Docker Compose
+
+The development infrastructure is composed of independent services:
+
+```text
+┌──────────────┐
+│   PostgreSQL │
+│      16      │
+└──────┬───────┘
+       │
+       │
+┌──────▼───────┐
+│     API      │
+│    Django    │
+└──────┬───────┘
+       │
+       │
+┌──────▼───────┐
+│    Redis     │
+│      7       │
+└──────────────┘
+
+       +
+
+┌──────────────┐
+│   Adminer    │
+└──────────────┘
+```
+
+The Compose configuration includes health checks for PostgreSQL and Redis, and the API waits for both services to become healthy before starting.
+
+---
+
+# 📧 Email Infrastructure
+
+The project supports SMTP-based email delivery for authentication workflows.
+
+Configured capabilities include:
+
+- Email verification.
+- Account confirmation.
+- SMTP/TLS.
+- Resend SMTP.
+- Gmail SMTP.
+
+Tests use Django's console email backend so authentication flows can be tested without sending real emails.
+
+---
+
+# 🔒 Production Security
+
+When `DEBUG=False`, the configuration enables additional security controls including:
+
+- HTTPS redirection.
+- HSTS.
+- HSTS subdomains.
+- HSTS preload.
+- Secure cookie configuration.
+- SameSite cookie configuration.
+- Reverse-proxy HTTPS support.
+- Trusted proxy host handling.
+
+The application also separates:
+
+```text
+CORS_ALLOWED_ORIGINS
+```
+
+from:
+
+```text
+CSRF_TRUSTED_ORIGINS
+```
+
+allowing cross-origin access and CSRF trust to be controlled independently.
+
+---
+
+# 🧱 Separation of Responsibilities
+
+The template intentionally separates different types of backend concerns.
+
+| Layer | Responsibility |
+|---|---|
+| `config/` | Project configuration and infrastructure |
+| `users/` | User domain |
+| `auth/` | Authentication domain |
+| `blog/` | Example business application |
+| `core/services/` | Shared service/business operations |
+| `core/responses/` | API response helpers |
+| `core/utils/` | Shared utilities |
+| `core/middleware/` | Cross-cutting request behavior |
+| `core/permission.py` | Reusable authorization |
+| `core/mixins.py` | Reusable Django/DRF behavior |
+| `core/renderers.py` | API representation |
+| `core/exceptions.py` | Custom exception definitions |
+| `core/error_codes.py` | Centralized error codes |
+
+The goal is to keep infrastructure reusable while allowing individual applications to own their business logic.
+
+---
+
+# 🧪 Testing Strategy
+
+The project is configured so the test suite does not depend on the development PostgreSQL or SQL Server instance.
+
+When tests are executed:
+
+```text
+Django
+  │
+  └── SQLite in-memory database
+```
+
+This provides an isolated database environment for automated tests.
+
+---
+
+# 🛠️ Technology Stack
+
+```text
+Python
+Django
+Django REST Framework
+SimpleJWT
+dj-rest-auth
+django-allauth
+drf-spectacular
+django-cors-headers
+python-decouple
+PostgreSQL
+SQL Server
+Redis
+Cloudflare R2
+Sentry
+Rich
+WhiteNoise
+Gunicorn
+Docker
+Docker Compose
+Pipenv
+```
+
+---
+
+# 📌 Engineering Focus
+
+This template focuses on the parts of backend development that tend to become important once an API moves beyond basic CRUD:
+
+```text
+                    ┌──────────────────┐
+                    │   Business API   │
+                    └────────┬─────────┘
+                             │
+       ┌─────────────────────┼─────────────────────┐
+       │                     │                     │
+ Authentication          Security             API Design
+       │                     │                     │
+       ├── JWT              ├── HTTPS            ├── Responses
+       ├── OAuth            ├── CSRF             ├── Errors
+       ├── Email            ├── CORS             ├── Pagination
+       └── Verification     └── Throttling       └── OpenAPI
+                             │
+       ┌─────────────────────┼─────────────────────┐
+       │                     │                     │
+ Observability           Infrastructure        Storage
+       │                     │                     │
+       ├── Sentry            ├── Docker           ├── PostgreSQL
+       ├── Logging           ├── Gunicorn         ├── SQL Server
+       └── Monitoring        └── Redis            └── Cloudflare R2
+```
+
+The result is a backend foundation designed to demonstrate not only familiarity with Django, but also understanding of **API architecture, security, infrastructure, deployment and maintainability**.
 
 ---
 
 ## 📄 License
 
-MIT. See [`LICENSE`](LICENSE).
+MIT.
 """
 
-path = Path("/mnt/data/README_improved.md")
+path = Path("/mnt/data/README_recruiter.md")
 path.write_text(readme, encoding="utf-8")
-print(f"Created: {path}")
+print(path)
