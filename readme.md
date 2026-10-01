@@ -1,6 +1,4 @@
-from pathlib import Path
-
-readme = r"""# 🧱 Django API Template
+# 🧱 Django API Template
 
 A production-minded **Django REST Framework starter** designed to bootstrap backend projects quickly with a solid architecture, authentication, security, observability and common API infrastructure already configured.
 
